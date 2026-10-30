@@ -1,0 +1,23 @@
+[Unit]
+Description=PTS Demo - Telegram Polling Bot Daemon
+After=network.target pts-web.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/pts-demo
+EnvironmentFile=/var/www/pts-demo/.env
+ExecStart=/var/www/pts-demo/.venv/bin/python /var/www/pts-demo/bot/main.py
+Restart=always
+RestartSec=10
+StandardOutput=append:/var/log/pts-bot.log
+StandardError=append:/var/log/pts-bot.log
+
+# Security hardening
+ProtectSystem=full
+ProtectHome=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

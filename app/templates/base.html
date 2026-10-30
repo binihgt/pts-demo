@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <meta name="theme-color" content="#0f172a">
+    <title>{% block title %}Overview{% endblock %} - {{ app_name }}</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <!-- Custom Mobile-First CSS -->
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.svg') }}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    {% if demo_mode %}
+    <!-- Demo Mode Top Banner -->
+    <div id="demo-mode-banner" class="alert alert-warning mb-0 text-center py-2 px-3 fw-bold border-0 rounded-0 d-flex align-items-center justify-content-center gap-2 shadow-sm" style="background: linear-gradient(90deg, #f59e0b, #d97706); color: #ffffff; font-size: 0.88rem; z-index: 1055;">
+        <i class="bi bi-info-circle-fill fs-6"></i>
+        <span>Demo environment — Exploring with pre-populated sample data. Read-only CEO login: <code class="text-white bg-dark bg-opacity-25 px-1 rounded">demo_ceo</code> / <code class="text-white bg-dark bg-opacity-25 px-1 rounded">DemoCEO123!</code></span>
+    </div>
+    {% endif %}
+
+    {% if current_user.is_authenticated %}
+    <!-- Main Top Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-pts sticky-top">
+        <div class="container-fluid px-3">
+            <a class="navbar-brand d-flex align-items-center gap-2" href="{{ url_for('dashboard.overview') }}">
+                <i class="bi bi-shield-check text-primary fs-4"></i>
+                <span>{{ app_name }}</span>
+            </a>
+            <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#ptsNavbar" aria-controls="ptsNavbar" aria-expanded="false" aria-label="Toggle navigation">
+                <i class="bi bi-list fs-2 text-white"></i>
+            </button>
+            <div class="collapse navbar-collapse" id="ptsNavbar">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0 mt-2 mt-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'dashboard.overview' %}active{% endif %}" href="{{ url_for('dashboard.overview') }}">
+                            <i class="bi bi-grid-1x2 me-1"></i> Overview
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint and 'sales' in request.endpoint %}active{% endif %}" href="{{ url_for('sales.index') }}">
+                            <i class="bi bi-receipt me-1"></i> Sales
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint and 'payments' in request.endpoint %}active{% endif %}" href="{{ url_for('payments.index') }}">
+                            <i class="bi bi-credit-card me-1"></i> Payments
+                        </a>
+                    </li>
+                    {% if current_user.can_view_all_sales %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint and 'reports' in request.endpoint %}active{% endif %}" href="{{ url_for('reports.index') }}">
+                            <i class="bi bi-file-earmark-excel me-1"></i> Reports
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% if current_user.is_ceo %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint and 'employees' in request.endpoint %}active{% endif %}" href="{{ url_for('employees.index') }}">
+                            <i class="bi bi-people me-1"></i> Team & Bot
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint and 'audit' in request.endpoint %}active{% endif %}" href="{{ url_for('audit.index') }}">
+                            <i class="bi bi-clock-history me-1"></i> Audit Log
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+                <div class="d-flex align-items-center gap-3 pt-2 pt-lg-0 border-top border-secondary border-opacity-25 border-top-lg-0">
+                    <div class="text-white small">
+                        <div class="fw-semibold">{{ current_user.name }}</div>
+                        <div class="text-uppercase text-info" style="font-size: 0.75rem;">
+                            {{ current_user.role }}
+                            {% if current_user.username == "demo_ceo" %}
+                            <span class="badge bg-warning text-dark ms-1" style="font-size: 0.65rem;">Read-Only</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-light btn-sm px-3" title="Sign Out">
+                        <i class="bi bi-box-arrow-right me-1"></i> Logout
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+    {% endif %}
+
+    <!-- Main Content Container -->
+    <main class="container-fluid px-3 py-3 flex-grow-1" style="max-width: 1280px;">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="my-2">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm d-flex align-items-center justify-content-between" role="alert">
+                            <div>{{ message }}</div>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Global Quick Pay Modal -->
+    <div class="modal fade" id="payModal" tabindex="-1" aria-labelledby="payModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="payModalLabel">Record Payment</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="payForm" method="POST" action="">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="modal-body">
+                        <div class="p-3 bg-light rounded mb-3">
+                            <div class="small text-muted">Sale Transaction</div>
+                            <div class="fw-bold" id="modalSaleItem">-</div>
+                            <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top">
+                                <span class="small text-muted">Remaining Balance:</span>
+                                <span class="fw-bold text-danger" id="modalSaleBalance">0.00 ETB</span>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="payAmountInput" class="form-label fw-semibold">Payment Amount (ETB)</label>
+                            <input type="number" step="0.01" min="0.01" class="form-control" id="payAmountInput" name="amount" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="payMethodSelect" class="form-label fw-semibold">Payment Method</label>
+                            <select class="form-select" id="payMethodSelect" name="method" required>
+                                <option value="telebirr">Telebirr</option>
+                                <option value="bank">Bank Transfer / CBE</option>
+                                <option value="cash">Cash</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary px-4">Save Payment</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 Bundle JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

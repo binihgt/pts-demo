@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}Record New Sale{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-md-8 col-lg-6">
+        <div class="d-flex align-items-center gap-2 mb-3">
+            <a href="{{ url_for('sales.index') }}" class="btn btn-light btn-sm text-secondary">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <h4 class="fw-bold mb-0">Record Sale</h4>
+        </div>
+
+        <div class="card border-0 shadow-sm p-3 p-md-4 rounded-4 bg-white">
+            <form method="POST" action="{{ url_for('sales.create') }}" novalidate>
+                {{ form.csrf_token }}
+
+                <!-- Item Description -->
+                <div class="mb-3">
+                    <label for="item" class="form-label fw-semibold text-secondary small">Item Name / Product *</label>
+                    {{ form.item(class="form-control" + (" is-invalid" if form.item.errors else ""), placeholder="e.g. Dell Latitude Laptop") }}
+                    {% for err in form.item.errors %}
+                        <div class="invalid-feedback">{{ err }}</div>
+                    {% endfor %}
+                </div>
+
+                <!-- Quantity & Unit Price -->
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <label for="quantity" class="form-label fw-semibold text-secondary small">Quantity *</label>
+                        {{ form.quantity(class="form-control" + (" is-invalid" if form.quantity.errors else ""), id="calcQty", min=1) }}
+                        {% for err in form.quantity.errors %}
+                            <div class="invalid-feedback">{{ err }}</div>
+                        {% endfor %}
+                    </div>
+                    <div class="col-6">
+                        <label for="unit_price" class="form-label fw-semibold text-secondary small">Unit Price (ETB) *</label>
+                        {{ form.unit_price(class="form-control" + (" is-invalid" if form.unit_price.errors else ""), id="calcPrice", placeholder="0.00", step="0.01") }}
+                        {% for err in form.unit_price.errors %}
+                            <div class="invalid-feedback">{{ err }}</div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Live Total Preview Box -->
+                <div class="p-3 bg-light rounded-3 mb-4 d-flex justify-content-between align-items-center">
+                    <span class="text-muted fw-semibold">Calculated Total:</span>
+                    <span class="fs-5 fw-bold text-primary" id="previewTotal">0.00 ETB</span>
+                </div>
+
+                <hr class="my-3 text-muted opacity-25">
+
+                <!-- Customer Details (Optional) -->
+                <h6 class="fw-bold text-dark mb-2">Customer Details (Optional)</h6>
+                <div class="mb-3">
+                    <label for="customer_name" class="form-label fw-semibold text-secondary small">Customer Full Name</label>
+                    {{ form.customer_name(class="form-control", placeholder="e.g. Desta Haile") }}
+                </div>
+                <div class="mb-4">
+                    <label for="customer_phone" class="form-label fw-semibold text-secondary small">Customer Phone Number</label>
+                    {{ form.customer_phone(class="form-control", placeholder="+251 91 122 3344") }}
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary py-2 fw-semibold shadow-sm">
+                        <i class="bi bi-check2-circle me-1"></i> Save Sale
+                    </button>
+                    <a href="{{ url_for('sales.index') }}" class="btn btn-light py-2">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const qtyInput = document.getElementById("calcQty");
+    const priceInput = document.getElementById("calcPrice");
+    const previewTotal = document.getElementById("previewTotal");
+
+    function updateTotal() {
+        const qty = parseFloat(qtyInput.value) || 0;
+        const price = parseFloat(priceInput.value) || 0;
+        const total = (qty * price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        previewTotal.textContent = total + " ETB";
+    }
+
+    qtyInput.addEventListener("input", updateTotal);
+    priceInput.addEventListener("input", updateTotal);
+    updateTotal();
+});
+</script>
+{% endblock %}

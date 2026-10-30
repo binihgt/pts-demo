@@ -1,0 +1,52 @@
+version: "3.8"
+
+services:
+  # 1. Web Dashboard Service (Flask + Gunicorn)
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pts_web
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - FLASK_ENV=production
+      - SESSION_COOKIE_SECURE=True
+    ports:
+      # Bound to localhost for security; Nginx/Caddy proxies HTTPS requests
+      - "127.0.0.1:5000:5000"
+    volumes:
+      - pts_data:/app/instance
+      - pts_backups:/app/backups
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/auth/login"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # 2. Telegram Bot Service (python-telegram-bot async runner)
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pts_bot
+    restart: unless-stopped
+    command: ["python", "bot/main.py"]
+    env_file:
+      - .env
+    volumes:
+      # Mount shared volume so bot accesses the same SQLite database
+      - pts_data:/app/instance
+      - pts_backups:/app/backups
+    depends_on:
+      - web
+
+volumes:
+  # Persistent SQLite database storage
+  pts_data:
+    driver: local
+  # Persistent daily database backup storage
+  pts_backups:
+    driver: local

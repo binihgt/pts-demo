@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Business Excel Reports{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-md-8 col-lg-6">
+        <div class="mb-4 text-center">
+            <div class="d-inline-flex align-items-center justify-content-center bg-success bg-opacity-10 text-success rounded-circle mb-3" style="width: 64px; height: 64px;">
+                <i class="bi bi-file-earmark-excel fs-1"></i>
+            </div>
+            <h4 class="fw-bold mb-1">Export Excel Reports</h4>
+            <p class="text-muted small">Generate formatted multi-sheet Excel workbooks with sales, collections, and financial summaries</p>
+        </div>
+
+        <div class="card border-0 shadow-sm p-4 rounded-4 bg-white">
+            <form method="GET" action="{{ url_for('reports.download') }}">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold text-secondary small">Start Date</label>
+                    <input type="date" name="start_date" id="repStart" class="form-control">
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-semibold text-secondary small">End Date</label>
+                    <input type="date" name="end_date" id="repEnd" class="form-control">
+                </div>
+
+                <!-- Quick Presets -->
+                <div class="mb-4">
+                    <label class="form-label text-muted small fw-semibold d-block">Quick Presets</label>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setPreset('today')">Today</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setPreset('week')">This Week</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setPreset('month')">This Month</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setPreset('all')">All Time</button>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-success w-100 py-2 fw-semibold shadow-sm">
+                    <i class="bi bi-download me-1"></i> Download Excel (.xlsx)
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function setPreset(range) {
+    const startInput = document.getElementById('repStart');
+    const endInput = document.getElementById('repEnd');
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+
+    if (range === 'today') {
+        startInput.value = todayStr;
+        endInput.value = todayStr;
+    } else if (range === 'week') {
+        const day = now.getDay() || 7;
+        const monday = new Date(now);
+        monday.setDate(now.getDate() - day + 1);
+        startInput.value = monday.toISOString().split('T')[0];
+        endInput.value = todayStr;
+    } else if (range === 'month') {
+        const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+        startInput.value = firstDay.toISOString().split('T')[0];
+        endInput.value = todayStr;
+    } else if (range === 'all') {
+        startInput.value = '';
+        endInput.value = '';
+    }
+}
+</script>
+{% endblock %}

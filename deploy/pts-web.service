@@ -1,0 +1,29 @@
+[Unit]
+Description=PTS Demo - Gunicorn Web Dashboard
+After=network.target
+
+[Service]
+Type=notify
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/pts-demo
+EnvironmentFile=/var/www/pts-demo/.env
+ExecStart=/var/www/pts-demo/.venv/bin/gunicorn \
+    --workers 3 \
+    --bind 127.0.0.1:5000 \
+    --access-logfile /var/log/pts-web.access.log \
+    --error-logfile /var/log/pts-web.error.log \
+    wsgi:app
+ExecReload=/bin/kill -s HUP $MAINPID
+KillMode=mixed
+TimeoutStopSec=10
+Restart=always
+RestartSec=5
+
+# Security sandbox directives
+ProtectSystem=full
+ProtectHome=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

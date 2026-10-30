@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard Overview{% endblock %}
+
+{% block extra_head %}
+<!-- Chart.js CDN for interactive visual metrics -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<!-- Top Header & Quick Actions -->
+<div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">
+    <div>
+        <h4 class="fw-bold mb-0">Overview</h4>
+        <p class="text-muted small mb-0">
+            {% if current_user.is_employee %}
+                Viewing your personal sales and collections
+            {% else %}
+                Company-wide executive operational summary
+            {% endif %}
+        </p>
+    </div>
+    <div class="d-flex gap-2 w-100 w-sm-auto">
+        <a href="{{ url_for('sales.create') }}" class="btn btn-primary flex-fill flex-sm-grow-0">
+            <i class="bi bi-plus-circle me-1"></i> New Sale
+        </a>
+        {% if current_user.can_view_all_sales %}
+        <a href="{{ url_for('reports.index') }}" class="btn btn-outline-secondary flex-fill flex-sm-grow-0">
+            <i class="bi bi-file-earmark-excel me-1"></i> Reports
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- KPI Summary Cards -->
+<div class="row g-3 mb-4">
+    <!-- Today Sales -->
+    <div class="col-6 col-lg-3">
+        <div class="kpi-card border-start border-4 border-primary">
+            <div class="kpi-title">Today's Sales</div>
+            <div class="kpi-value text-primary">{{ metrics.today_total|currency }}</div>
+            <div class="kpi-sub">{{ metrics.today_count }} transactions today</div>
+        </div>
+    </div>
+    <!-- This Week -->
+    <div class="col-6 col-lg-3">
+        <div class="kpi-card border-start border-4 border-info">
+            <div class="kpi-title">This Week</div>
+            <div class="kpi-value text-info">{{ metrics.week_total|currency }}</div>
+            <div class="kpi-sub">Collected: {{ metrics.week_collected|currency }}</div>
+        </div>
+    </div>
+    <!-- This Month -->
+    <div class="col-6 col-lg-3">
+        <div class="kpi-card border-start border-4 border-success">
+            <div class="kpi-title">This Month</div>
+            <div class="kpi-value text-success">{{ metrics.month_total|currency }}</div>
+            <div class="kpi-sub">Collected: {{ metrics.month_collected|currency }}</div>
+        </div>
+    </div>
+    <!-- Unpaid Credit Balance -->
+    <div class="col-6 col-lg-3">
+        <div class="kpi-card border-start border-4 border-danger">
+            <div class="kpi-title">Unpaid Balances</div>
+            <div class="kpi-value text-danger">{{ metrics.total_unpaid|currency }}</div>
+            <div class="kpi-sub">{{ metrics.unpaid_count }} outstanding invoices</div>
+        </div>
+    </div>
+</div>
+
+<!-- Sales Trend Chart & Top Employees -->
+<div class="row g-3 mb-4">
+    <div class="col-12 {% if current_user.can_view_all_sales and metrics.top_employees %}col-lg-8{% endif %}">
+        <div class="card border-0 shadow-sm p-3 p-md-4 rounded-4 bg-white h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold mb-0"><i class="bi bi-graph-up text-primary me-2"></i>Sales Trend (Last 14 Days)</h6>
+                <span class="badge bg-light text-secondary border">Daily Total (ETB)</span>
+            </div>
+            <div style="position: relative; height: 240px; width: 100%;">
+                <canvas id="salesTrendChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    {% if current_user.can_view_all_sales and metrics.top_employees %}
+    <div class="col-12 col-lg-4">
+        <div class="card border-0 shadow-sm p-3 p-md-4 rounded-4 bg-white h-100">
+            <h6 class="fw-bold mb-3 d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-trophy text-warning me-2"></i>Top Sales Employees</span>
+                <span class="badge bg-light text-secondary border fw-normal" style="font-size: 0.75rem;">All Time</span>
+            </h6>
+            <div class="d-flex flex-column gap-3">
+                {% for emp in metrics.top_employees %}
+                <div class="d-flex justify-content-between align-items-center pb-2 border-bottom">
+                    <div>
+                        <div class="fw-semibold small">{{ emp.name }}</div>
+                        <div class="text-muted" style="font-size: 0.75rem;">{{ emp.count }} sales</div>
+                    </div>
+                    <div class="text-end">
+                        <div class="fw-bold text-dark small">{{ emp.revenue|currency }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Unpaid Balances / Credit Watchlist -->
+{% if metrics.recent_unpaid %}
+<div class="card border-0 shadow-sm p-3 p-md-4 rounded-4 bg-white mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="fw-bold mb-0 text-danger"><i class="bi bi-exclamation-circle-fill me-2"></i>Outstanding Balances</h6>
+        <a href="{{ url_for('sales.index', status='unpaid') }}" class="small text-decoration-none">View All Unpaid</a>
+    </div>
+    
+    <div class="table-responsive">
+        <table class="table table-hover align-middle responsive-card-table mb-0">
+            <thead>
+                <tr class="text-muted small text-uppercase">
+                    <th>Invoice</th>
+                    <th>Item</th>
+                    <th>Customer</th>
+                    <th>Total</th>
+                    <th>Paid</th>
+                    <th>Balance</th>
+                    <th class="text-end">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sale in metrics.recent_unpaid %}
+                <tr>
+                    <td data-label="Invoice">#{{ sale.id }}</td>
+                    <td data-label="Item" class="fw-semibold">{{ sale.item }}</td>
+                    <td data-label="Customer">{{ sale.customer.name if sale.customer else '-' }}</td>
+                    <td data-label="Total">{{ sale.total|currency }}</td>
+                    <td data-label="Paid" class="text-success">{{ sale.total_paid|currency }}</td>
+                    <td data-label="Balance" class="text-danger fw-bold">{{ sale.balance|currency }}</td>
+                    <td data-label="Action" class="text-end">
+                        <button type="button" 
+                                class="btn btn-sm btn-outline-success px-3"
+                                data-bs-toggle="modal" 
+                                data-bs-target="#payModal"
+                                data-sale-id="{{ sale.id }}"
+                                data-sale-item="{{ sale.item }}"
+                                data-sale-balance="{{ sale.balance }}">
+                            <i class="bi bi-cash me-1"></i> Pay
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- Recent Sales List -->
+<div class="card border-0 shadow-sm p-3 p-md-4 rounded-4 bg-white mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="fw-bold mb-0"><i class="bi bi-clock-history text-secondary me-2"></i>Recent Sales</h6>
+        <a href="{{ url_for('sales.index') }}" class="small text-decoration-none">View All Sales</a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover align-middle responsive-card-table mb-0">
+            <thead>
+                <tr class="text-muted small text-uppercase">
+                    <th>Invoice</th>
+                    <th>Item & Qty</th>
+                    <th>Employee</th>
+                    <th>Customer</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                    <th class="text-end">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sale in metrics.recent_sales %}
+                <tr>
+                    <td data-label="Invoice">#{{ sale.id }}</td>
+                    <td data-label="Item" class="fw-semibold">{{ sale.item }} <span class="badge bg-light text-dark border">x{{ sale.quantity }}</span></td>
+                    <td data-label="Employee">{{ sale.employee.name }}</td>
+                    <td data-label="Customer">{{ sale.customer.name if sale.customer else '-' }}</td>
+                    <td data-label="Total" class="fw-bold">{{ sale.total|currency }}</td>
+                    <td data-label="Status">
+                        <span class="badge-status badge-{{ sale.payment_status }}">
+                            {{ sale.payment_status }}
+                        </span>
+                    </td>
+                    <td data-label="Action" class="text-end">
+                        {% if sale.balance > 0 %}
+                        <button type="button" 
+                                class="btn btn-sm btn-outline-success px-3"
+                                data-bs-toggle="modal" 
+                                data-bs-target="#payModal"
+                                data-sale-id="{{ sale.id }}"
+                                data-sale-item="{{ sale.item }}"
+                                data-sale-balance="{{ sale.balance }}">
+                            <i class="bi bi-cash me-1"></i> Pay
+                        </button>
+                        {% else %}
+                        <span class="badge bg-success-subtle text-success small py-1 px-2"><i class="bi bi-check2-circle"></i> Settled</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const ctx = document.getElementById("salesTrendChart");
+    if (ctx) {
+        new Chart(ctx, {
+            type: "line",
+            data: {
+                labels: {{ metrics.chart_labels|tojson }},
+                datasets: [{
+                    label: "Revenue (ETB)",
+                    data: {{ metrics.chart_values|tojson }},
+                    borderColor: "#0284c7",
+                    backgroundColor: "rgba(2, 132, 199, 0.08)",
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.35,
+                    pointRadius: 4,
+                    pointBackgroundColor: "#0284c7"
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: { font: { size: 11 } }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            font: { size: 11 },
+                            callback: function(val) { return val.toLocaleString() + ' ETB'; }
+                        }
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,12 @@
+[Unit]
+Description=PTS Demo - Daily SQLite Database Backup
+After=network.target
+
+[Service]
+Type=oneshot
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/pts-demo
+ExecStart=/var/www/pts-demo/.venv/bin/python /var/www/pts-demo/scripts/backup.py --retention-count 14
+StandardOutput=append:/var/log/pts-backup.log
+StandardError=append:/var/log/pts-backup.log

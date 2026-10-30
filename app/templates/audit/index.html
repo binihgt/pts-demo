@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}System Audit Log{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">
+    <div>
+        <h4 class="fw-bold mb-0">System Audit Trail</h4>
+        <p class="text-muted small mb-0">Immutable record of security events, administrative changes, and sales activities</p>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card border-0 shadow-sm p-3 rounded-4 bg-white mb-4">
+    <form method="GET" action="{{ url_for('audit.index') }}" class="row g-2 align-items-center">
+        <div class="col-12 col-md-4">
+            <select name="action" class="form-select">
+                <option value="">All Actions</option>
+                {% for act in actions %}
+                <option value="{{ act }}" {% if selected_action == act %}selected{% endif %}>{{ act }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-12 col-md-8 d-flex justify-content-end gap-2">
+            <a href="{{ url_for('audit.index') }}" class="btn btn-light btn-sm px-3">Reset</a>
+            <button type="submit" class="btn btn-secondary btn-sm px-4">Filter Logs</button>
+        </div>
+    </form>
+</div>
+
+<!-- Log Entries -->
+<div class="card border-0 shadow-sm p-3 p-md-4 rounded-4 bg-white">
+    {% if logs %}
+    <div class="table-responsive">
+        <table class="table table-hover align-middle responsive-card-table mb-0">
+            <thead>
+                <tr class="text-muted small text-uppercase">
+                    <th>Timestamp (EAT)</th>
+                    <th>Action</th>
+                    <th>User</th>
+                    <th>Details</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td data-label="Timestamp" class="small text-muted font-monospace">{{ log.created_at|date_fmt("%Y-%m-%d %H:%M:%S") }}</td>
+                    <td data-label="Action">
+                        <span class="badge bg-dark-subtle text-dark border px-2 py-1 font-monospace small">
+                            {{ log.action }}
+                        </span>
+                    </td>
+                    <td data-label="User" class="small">
+                        {% if log.user %}
+                            <span class="fw-semibold">{{ log.user.name }}</span> <span class="text-muted">(@{{ log.user.username }})</span>
+                        {% else %}
+                            <span class="text-muted">System / Anonymous</span>
+                        {% endif %}
+                    </td>
+                    <td data-label="Details" class="small text-secondary">{{ log.details or '-' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5 text-muted">
+        <i class="bi bi-shield-check fs-1 d-block mb-2 text-secondary"></i>
+        <h6>No log records found.</h6>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
