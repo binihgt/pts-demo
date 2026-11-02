@@ -92,16 +92,12 @@ def register_webhook_async(token: str, public_url: str, webhook_path: str = "/we
             try:
                 bot = Bot(token=token)
                 async with bot:
-                    current_info = await bot.get_webhook_info()
-                    if current_info.url != target_url:
-                        await bot.set_webhook(
-                            url=target_url,
-                            secret_token=secret or None,
-                            drop_pending_updates=False
-                        )
-                        logger.info(f"Telegram webhook successfully registered to {target_url}")
-                    else:
-                        logger.info(f"Telegram webhook is already registered to {target_url}")
+                    await bot.set_webhook(
+                        url=target_url,
+                        secret_token=secret or None,
+                        drop_pending_updates=False
+                    )
+                    logger.info(f"Telegram webhook successfully registered to {target_url}")
             except Exception as exc:
                 logger.warning(f"Could not auto-register Telegram webhook: {exc}")
 

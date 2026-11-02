@@ -29,10 +29,17 @@ def create_app(config_name: str | None = None) -> Flask:
     if "TELEGRAM_WEBHOOK_SECRET" in os.environ:
         app.config["TELEGRAM_WEBHOOK_SECRET"] = os.environ["TELEGRAM_WEBHOOK_SECRET"]
 
-    if "PUBLIC_URL" in os.environ:
-        app.config["PUBLIC_URL"] = os.environ["PUBLIC_URL"]
-    elif "RENDER_EXTERNAL_URL" in os.environ:
-        app.config["PUBLIC_URL"] = os.environ["RENDER_EXTERNAL_URL"]
+    if "TELEGRAM_BOT_TOKEN" in os.environ:
+        app.config["TELEGRAM_BOT_TOKEN"] = os.environ["TELEGRAM_BOT_TOKEN"].strip()
+
+    if "PUBLIC_URL" in os.environ and os.environ["PUBLIC_URL"].strip():
+        app.config["PUBLIC_URL"] = os.environ["PUBLIC_URL"].strip()
+    elif "RENDER_EXTERNAL_URL" in os.environ and os.environ["RENDER_EXTERNAL_URL"].strip():
+        app.config["PUBLIC_URL"] = os.environ["RENDER_EXTERNAL_URL"].strip()
+    elif "RENDER_EXTERNAL_HOSTNAME" in os.environ and os.environ["RENDER_EXTERNAL_HOSTNAME"].strip():
+        app.config["PUBLIC_URL"] = f"https://{os.environ['RENDER_EXTERNAL_HOSTNAME'].strip()}"
+    elif config_name == "production":
+        app.config["PUBLIC_URL"] = "https://pts-demo.onrender.com"
 
     # Initialize Flask extensions
     db.init_app(app)
