@@ -198,6 +198,11 @@ async def pay_method_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
     amount = context.user_data.get("pay_amount")
     user_id = context.user_data.get("db_user_id")
 
+    if not sale_id or not amount or not user_id:
+        await query.edit_message_text("⚠️ Payment session expired. Please start over with `/pay`.")
+        context.user_data.clear()
+        return ConversationHandler.END
+
     with get_bot_app().app_context():
         try:
             payment = SalesService.record_payment(

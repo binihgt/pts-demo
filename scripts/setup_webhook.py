@@ -27,7 +27,7 @@ if hasattr(sys.stdout, "reconfigure"):
 def main():
     parser = argparse.ArgumentParser(description="PTS Demo Telegram Webhook Manager")
     parser.add_argument("--url", default="https://pts-demo.onrender.com", help="Public HTTPS URL of your Render service")
-    parser.add_argument("--secret", default=None, help="Telegram Webhook Secret Token (optional)")
+    parser.add_argument("--secret", default="pts_demo_secret_2026_webhook", help="Telegram Webhook Secret Token")
     parser.add_argument("--delete", action="store_true", help="Delete webhook and switch to polling mode")
     parser.add_argument("--token", default=None, help="Override bot token (defaults to .env TELEGRAM_BOT_TOKEN)")
     args = parser.parse_args()

@@ -52,6 +52,7 @@ def telegram_webhook():
         logger.error(f"Error processing Telegram webhook update: {exc}", exc_info=True)
         import sys, traceback
         traceback.print_exc(file=sys.stderr)
-        return jsonify({"status": "error", "message": "Failed to process update"}), 500
+        # Always return 200 to acknowledge receipt and prevent Telegram retry freeze loops
+        return jsonify({"status": "ok", "error": str(exc)}), 200
 
     return jsonify({"status": "ok"}), 200

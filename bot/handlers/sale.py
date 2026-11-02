@@ -144,10 +144,18 @@ async def sale_customer(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
         context.user_data["customer_phone"] = clean_phone
         cust_display = f"{raw_name} ({clean_phone})" if clean_phone else raw_name
 
-    item = context.user_data["sale_item"]
-    qty = context.user_data["sale_qty"]
-    price = context.user_data["sale_price"]
-    total = context.user_data["sale_total"]
+    item = context.user_data.get("sale_item")
+    qty = context.user_data.get("sale_qty")
+    price = context.user_data.get("sale_price")
+    total = context.user_data.get("sale_total")
+
+    if not item or not qty or not price:
+        await update.message.reply_text(
+            "⚠️ *Session Expired or Incomplete Sale*\nPlease start a new sale using `/sale`.",
+            parse_mode="Markdown"
+        )
+        context.user_data.clear()
+        return ConversationHandler.END
 
     confirmation_text = (
         "📋 *Please Confirm This Sale:*\n\n"
@@ -188,6 +196,11 @@ async def sale_confirm_callback(update: Update, context: ContextTypes.DEFAULT_TY
     price = context.user_data.get("sale_price")
     c_name = context.user_data.get("customer_name")
     c_phone = context.user_data.get("customer_phone")
+
+    if not user_id or not item or not qty or not price:
+        await query.edit_message_text("⚠️ Sale session expired. Please start over with `/sale`.", parse_mode="Markdown")
+        context.user_data.clear()
+        return ConversationHandler.END
 
     with get_bot_app().app_context():
         try:
