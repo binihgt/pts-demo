@@ -20,6 +20,9 @@ sys.path.insert(0, str(BASE_DIR))
 from dotenv import load_dotenv
 load_dotenv(BASE_DIR / ".env")
 
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+
 
 def main():
     parser = argparse.ArgumentParser(description="PTS Demo Telegram Webhook Manager")

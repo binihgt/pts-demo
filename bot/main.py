@@ -16,6 +16,8 @@ sys.path.insert(0, str(BASE_DIR))
 from dotenv import load_dotenv
 load_dotenv(BASE_DIR / ".env")
 
+import httpcore
+import httpx
 from telegram import Update
 from telegram.ext import (
     ApplicationBuilder,

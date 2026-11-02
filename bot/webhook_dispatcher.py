@@ -11,6 +11,8 @@ import threading
 from typing import Optional
 from pathlib import Path
 
+import httpcore
+import httpx
 from telegram import Update, Bot
 from bot.main import build_bot_application
 
@@ -48,6 +50,7 @@ class BotWebhookRunner:
             # Set internal flags so process_update does not raise RuntimeError in offline/test scenarios
             self.bot_app._initialized = True
             self.bot_app.bot._initialized = True
+            self.bot_app._running = True
             token_prefix = self.token.split(":")[0] if ":" in self.token else "123456"
             self.bot_app.bot._id = int(token_prefix) if token_prefix.isdigit() else 123456
 
