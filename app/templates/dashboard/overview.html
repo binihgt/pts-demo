@@ -8,253 +8,634 @@
 {% endblock %}
 
 {% block content %}
-<!-- Top Header & Quick Actions -->
-<div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">
-    <div>
-        <h4 class="fw-bold mb-0">Overview</h4>
-        <p class="text-muted small mb-0">
-            {% if current_user.is_employee %}
-                Viewing your personal sales and collections
-            {% else %}
-                Company-wide executive operational summary
-            {% endif %}
-        </p>
-    </div>
-    <div class="d-flex gap-2 w-100 w-sm-auto">
-        <a href="{{ url_for('sales.create') }}" class="btn btn-primary flex-fill flex-sm-grow-0">
-            <i class="bi bi-plus-circle me-1"></i> New Sale
-        </a>
-        {% if current_user.can_view_all_sales %}
-        <a href="{{ url_for('reports.index') }}" class="btn btn-outline-secondary flex-fill flex-sm-grow-0">
-            <i class="bi bi-file-earmark-excel me-1"></i> Reports
-        </a>
-        {% endif %}
-    </div>
-</div>
-
-<!-- KPI Summary Cards -->
-<div class="row g-3 mb-4">
-    <!-- Today Sales -->
-    <div class="col-6 col-lg-3">
-        <div class="kpi-card border-start border-4 border-primary">
-            <div class="kpi-title">Today's Sales</div>
-            <div class="kpi-value text-primary">{{ metrics.today_total|currency }}</div>
-            <div class="kpi-sub">{{ metrics.today_count }} transactions today</div>
-        </div>
-    </div>
-    <!-- This Week -->
-    <div class="col-6 col-lg-3">
-        <div class="kpi-card border-start border-4 border-info">
-            <div class="kpi-title">This Week</div>
-            <div class="kpi-value text-info">{{ metrics.week_total|currency }}</div>
-            <div class="kpi-sub">Collected: {{ metrics.week_collected|currency }}</div>
-        </div>
-    </div>
-    <!-- This Month -->
-    <div class="col-6 col-lg-3">
-        <div class="kpi-card border-start border-4 border-success">
-            <div class="kpi-title">This Month</div>
-            <div class="kpi-value text-success">{{ metrics.month_total|currency }}</div>
-            <div class="kpi-sub">Collected: {{ metrics.month_collected|currency }}</div>
-        </div>
-    </div>
-    <!-- Unpaid Credit Balance -->
-    <div class="col-6 col-lg-3">
-        <div class="kpi-card border-start border-4 border-danger">
-            <div class="kpi-title">Unpaid Balances</div>
-            <div class="kpi-value text-danger">{{ metrics.total_unpaid|currency }}</div>
-            <div class="kpi-sub">{{ metrics.unpaid_count }} outstanding invoices</div>
-        </div>
-    </div>
-</div>
-
-<!-- Sales Trend Chart & Top Employees -->
-<div class="row g-3 mb-4">
-    <div class="col-12 {% if current_user.can_view_all_sales and metrics.top_employees %}col-lg-8{% endif %}">
-        <div class="card border-0 shadow-sm p-3 p-md-4 rounded-4 bg-white h-100">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h6 class="fw-bold mb-0"><i class="bi bi-graph-up text-primary me-2"></i>Sales Trend (Last 14 Days)</h6>
-                <span class="badge bg-light text-secondary border">Daily Total (ETB)</span>
-            </div>
-            <div style="position: relative; height: 240px; width: 100%;">
-                <canvas id="salesTrendChart"></canvas>
-            </div>
-        </div>
-    </div>
-
-    {% if current_user.can_view_all_sales and metrics.top_employees %}
-    <div class="col-12 col-lg-4">
-        <div class="card border-0 shadow-sm p-3 p-md-4 rounded-4 bg-white h-100">
-            <h6 class="fw-bold mb-3 d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-trophy text-warning me-2"></i>Top Sales Employees</span>
-                <span class="badge bg-light text-secondary border fw-normal" style="font-size: 0.75rem;">All Time</span>
-            </h6>
-            <div class="d-flex flex-column gap-3">
-                {% for emp in metrics.top_employees %}
-                <div class="d-flex justify-content-between align-items-center pb-2 border-bottom">
-                    <div>
-                        <div class="fw-semibold small">{{ emp.name }}</div>
-                        <div class="text-muted" style="font-size: 0.75rem;">{{ emp.count }} sales</div>
-                    </div>
-                    <div class="text-end">
-                        <div class="fw-bold text-dark small">{{ emp.revenue|currency }}</div>
+    <!-- Row 1: Top 4 Stat / KPI Cards (Matching Inspiration Layout adapted to PTS Demo) -->
+    <div class="row g-2 g-sm-3 mb-4">
+        <!-- Card 1: Today's Sales -->
+        <div class="col-6 col-xl-3">
+            <div class="stat-card">
+                <div class="stat-icon-box">
+                    <i class="bi bi-cash-stack text-primary"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-label">Today's Sales</div>
+                    <div class="stat-value-row">
+                        <span class="stat-value">{{ metrics.today_total|currency }}</span>
+                        <span class="growth-pill positive">
+                            <span class="growth-dot"></span> {{ metrics.growth_today }}
+                        </span>
                     </div>
                 </div>
-                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Card 2: Cash Collected This Month -->
+        <div class="col-6 col-xl-3">
+            <div class="stat-card">
+                <div class="stat-icon-box">
+                    <i class="bi bi-wallet2 text-success"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-label">Collected This Month</div>
+                    <div class="stat-value-row">
+                        <span class="stat-value">{{ metrics.month_collected|currency }}</span>
+                        <span class="growth-pill positive">
+                            <span class="growth-dot"></span> {{ metrics.growth_collected }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 3: Unpaid Balances (Credit Watchlist) -->
+        <div class="col-6 col-xl-3">
+            <div class="stat-card">
+                <div class="stat-icon-box">
+                    <i class="bi bi-exclamation-triangle text-danger"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-label">Unpaid Balances</div>
+                    <div class="stat-value-row">
+                        <span class="stat-value">{{ metrics.total_unpaid|currency }}</span>
+                        <span class="growth-pill negative">
+                            <span class="growth-dot"></span> {{ metrics.unpaid_count }} owed
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 4: Completed Sales -->
+        <div class="col-6 col-xl-3">
+            <div class="stat-card">
+                <div class="stat-icon-box">
+                    <i class="bi bi-clipboard2-check text-info"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-label">Completed Sales</div>
+                    <div class="stat-value-row">
+                        <span class="stat-value">{{ metrics.completed_count }}</span>
+                        <span class="growth-pill positive">
+                            <span class="growth-dot"></span> {{ metrics.growth_completed }}
+                        </span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-    {% endif %}
-</div>
 
-<!-- Unpaid Balances / Credit Watchlist -->
-{% if metrics.recent_unpaid %}
-<div class="card border-0 shadow-sm p-3 p-md-4 rounded-4 bg-white mb-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h6 class="fw-bold mb-0 text-danger"><i class="bi bi-exclamation-circle-fill me-2"></i>Outstanding Balances</h6>
-        <a href="{{ url_for('sales.index', status='unpaid') }}" class="small text-decoration-none">View All Unpaid</a>
-    </div>
-    
-    <div class="table-responsive">
-        <table class="table table-hover align-middle responsive-card-table mb-0">
-            <thead>
-                <tr class="text-muted small text-uppercase">
-                    <th>Invoice</th>
-                    <th>Item</th>
-                    <th>Customer</th>
-                    <th>Total</th>
-                    <th>Paid</th>
-                    <th>Balance</th>
-                    <th class="text-end">Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for sale in metrics.recent_unpaid %}
-                <tr>
-                    <td data-label="Invoice">#{{ sale.id }}</td>
-                    <td data-label="Item" class="fw-semibold">{{ sale.item }}</td>
-                    <td data-label="Customer">{{ sale.customer.name if sale.customer else '-' }}</td>
-                    <td data-label="Total">{{ sale.total|currency }}</td>
-                    <td data-label="Paid" class="text-success">{{ sale.total_paid|currency }}</td>
-                    <td data-label="Balance" class="text-danger fw-bold">{{ sale.balance|currency }}</td>
-                    <td data-label="Action" class="text-end">
-                        <button type="button" 
-                                class="btn btn-sm btn-outline-success px-3"
-                                data-bs-toggle="modal" 
-                                data-bs-target="#payModal"
-                                data-sale-id="{{ sale.id }}"
-                                data-sale-item="{{ sale.item }}"
-                                data-sale-balance="{{ sale.balance }}">
-                            <i class="bi bi-cash me-1"></i> Pay
+    <!-- Row 2: Sales Report Chart & Top Performance Card -->
+    <div class="row g-4 mb-4">
+        <!-- Left: Sales Report Card (Dual-line Chart: Sales Revenue vs Collections) -->
+        <div class="col-12 col-xl-8">
+            <div class="sales-report-card">
+                <!-- Header -->
+                <div class="report-header">
+                    <div>
+                        <h2 class="report-title">Your sales report</h2>
+                        <p class="report-sub">Sales Revenue & Collections Flow</p>
+                    </div>
+                    <div class="dropdown report-filter-dropdown">
+                        <button class="btn dropdown-toggle" type="button" id="salesMetricSelectBtn" data-bs-toggle="dropdown" aria-expanded="false">
+                            <span id="activeMetricLabel">Sales vs Collections</span>
                         </button>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</div>
-{% endif %}
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 rounded-3" aria-labelledby="salesMetricSelectBtn">
+                            <li><a class="dropdown-item active" href="javascript:void(0)" onclick="switchChartMetric('comparison', 'Sales vs Collections')">Sales vs Collections</a></li>
+                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="switchChartMetric('sales', 'Total Sales Revenue')">Total Sales Revenue</a></li>
+                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="switchChartMetric('collections', 'Total Collections')">Total Collections</a></li>
+                        </ul>
+                    </div>
+                </div>
 
-<!-- Recent Sales List -->
-<div class="card border-0 shadow-sm p-3 p-md-4 rounded-4 bg-white mb-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h6 class="fw-bold mb-0"><i class="bi bi-clock-history text-secondary me-2"></i>Recent Sales</h6>
-        <a href="{{ url_for('sales.index') }}" class="small text-decoration-none">View All Sales</a>
+                <!-- Big Hero Metric -->
+                <div class="report-hero-metric">
+                    <span class="report-big-amount" id="heroAmountDisplay">
+                        {{ metrics.month_total|currency }}
+                    </span>
+                    <span class="report-trend-badge" id="heroTrendBadge">
+                        <i class="bi bi-arrow-up-right"></i> Collected: {{ metrics.month_collected|currency }} ({{ metrics.growth_revenue }})
+                    </span>
+                </div>
+
+                <!-- Time Range Buttons (1d, 7d, 30d, 1y, Max) -->
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div class="time-range-group" role="group" aria-label="Sales Time Filter">
+                        <button type="button" class="time-range-btn" data-period="1d">1d</button>
+                        <button type="button" class="time-range-btn active" data-period="7d">7d</button>
+                        <button type="button" class="time-range-btn" data-period="30d">30d</button>
+                        <button type="button" class="time-range-btn" data-period="1y">1y</button>
+                        <button type="button" class="time-range-btn" data-period="max">Max</button>
+                    </div>
+                    <div class="d-flex align-items-center gap-3 small text-muted">
+                        <span class="d-inline-flex align-items-center gap-1"><span style="width: 10px; height: 10px; border-radius: 50%; background: #0284c7;"></span> Sales (Billed)</span>
+                        <span class="d-inline-flex align-items-center gap-1"><span style="width: 10px; height: 10px; border-radius: 50%; background: #f97316;"></span> Collected (Cash/Bank)</span>
+                    </div>
+                </div>
+
+                <!-- Chart Canvas -->
+                <div class="chart-container-box">
+                    <canvas id="salesReportChart"></canvas>
+                </div>
+
+                <!-- X-Axis Month Indicator Row (Jan .. Dec) -->
+                <div class="month-pills-row d-none d-md-flex" id="monthPillsBar">
+                    {% for m in ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"] %}
+                    <span class="month-pill-item {% if m == metrics.current_month_name %}active{% endif %}">{{ m }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Top Performance Card -->
+        <div class="col-12 col-xl-4">
+            <div class="congrats-card">
+                <div>
+                    <h2 class="congrats-title">Top Performance 🎉</h2>
+                    <p class="congrats-sub">Best-selling inventory items and team leader</p>
+                </div>
+
+                <!-- Product Showcase Carousel -->
+                <div class="product-showcase-wrapper" id="productCarouselWrapper">
+                    <button class="carousel-nav-btn prev" id="carouselPrevBtn" aria-label="Previous Product">
+                        <i class="bi bi-chevron-left"></i>
+                    </button>
+                    <button class="carousel-nav-btn next" id="carouselNextBtn" aria-label="Next Product">
+                        <i class="bi bi-chevron-right"></i>
+                    </button>
+
+                    <!-- Layered Cards Stack -->
+                    <div class="product-cards-stack">
+                        <div class="product-card-preview bg-side-left" id="cardSideLeft">
+                            <img src="{{ url_for('static', filename='img/laptop.jpg') }}" alt="Product Preview Left" id="imgSideLeft">
+                        </div>
+                        <div class="product-card-preview" id="cardCenter">
+                            <img src="{{ url_for('static', filename='img/laptop.jpg') }}" alt="Featured Product" id="imgCenter">
+                        </div>
+                        <div class="product-card-preview bg-side-right" id="cardSideRight">
+                            <img src="{{ url_for('static', filename='img/laptop.jpg') }}" alt="Product Preview Right" id="imgSideRight">
+                        </div>
+                    </div>
+
+                    <!-- Product Meta -->
+                    <div class="text-center w-100">
+                        <h4 class="product-showcase-title text-truncate px-2" id="showcaseProductTitle">Dell Latitude 5420 Laptop</h4>
+                        <div class="product-showcase-meta justify-content-center">
+                            <span class="badge bg-white text-dark border shadow-sm px-2 py-1" id="showcaseProductUnits">
+                                <i class="bi bi-box-seam text-primary me-1"></i> 14 units sold
+                            </span>
+                            <span class="fw-bold text-dark" id="showcaseProductRev">
+                                {{ metrics.month_total|currency }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top Sales Employee of the Month -->
+                {% if metrics.top_employees %}
+                <div class="mt-3 p-3 bg-light rounded-3 border">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="rounded-circle bg-warning text-dark d-flex align-items-center justify-content-center fw-bold" style="width: 32px; height: 32px;">
+                                <i class="bi bi-trophy-fill"></i>
+                            </div>
+                            <div>
+                                <div class="fw-bold small text-dark">{{ metrics.top_employees[0].name }}</div>
+                                <div class="text-muted" style="font-size: 0.72rem;">Top Salesperson ({{ metrics.top_employees[0].count }} sales recorded)</div>
+                            </div>
+                        </div>
+                        <span class="badge bg-dark rounded-pill">{{ metrics.top_employees[0].revenue|currency }}</span>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
     </div>
 
-    <div class="table-responsive">
-        <table class="table table-hover align-middle responsive-card-table mb-0">
-            <thead>
-                <tr class="text-muted small text-uppercase">
-                    <th>Invoice</th>
-                    <th>Item & Qty</th>
-                    <th>Employee</th>
-                    <th>Customer</th>
-                    <th>Total</th>
-                    <th>Status</th>
-                    <th class="text-end">Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for sale in metrics.recent_sales %}
-                <tr>
-                    <td data-label="Invoice">#{{ sale.id }}</td>
-                    <td data-label="Item" class="fw-semibold">{{ sale.item }} <span class="badge bg-light text-dark border">x{{ sale.quantity }}</span></td>
-                    <td data-label="Employee">{{ sale.employee.name }}</td>
-                    <td data-label="Customer">{{ sale.customer.name if sale.customer else '-' }}</td>
-                    <td data-label="Total" class="fw-bold">{{ sale.total|currency }}</td>
-                    <td data-label="Status">
-                        <span class="badge-status badge-{{ sale.payment_status }}">
-                            {{ sale.payment_status }}
-                        </span>
-                    </td>
-                    <td data-label="Action" class="text-end">
-                        {% if sale.balance > 0 %}
-                        <button type="button" 
-                                class="btn btn-sm btn-outline-success px-3"
-                                data-bs-toggle="modal" 
-                                data-bs-target="#payModal"
-                                data-sale-id="{{ sale.id }}"
-                                data-sale-item="{{ sale.item }}"
-                                data-sale-balance="{{ sale.balance }}">
-                            <i class="bi bi-cash me-1"></i> Pay
-                        </button>
-                        {% else %}
-                        <span class="badge bg-success-subtle text-success small py-1 px-2"><i class="bi bi-check2-circle"></i> Settled</span>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <!-- Row 3: Last transaction (Data Table) -->
+    <div class="transactions-card">
+        <!-- Header & Controls -->
+        <div class="transactions-header">
+            <div>
+                <h2 class="transactions-title">Last transaction</h2>
+            </div>
+            <div class="transactions-controls">
+                <!-- Search Input Box -->
+                <div class="search-input-pill">
+                    <i class="bi bi-search"></i>
+                    <input type="text" id="transactionSearchInput" placeholder="Search item, customer, employee..." aria-label="Search transactions">
+                </div>
+
+                <!-- Status Filter Dropdown -->
+                <div class="dropdown">
+                    <button class="filter-icon-btn" type="button" id="txFilterBtn" data-bs-toggle="dropdown" aria-expanded="false" title="Filter transactions">
+                        <i class="bi bi-sliders"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3" aria-labelledby="txFilterBtn">
+                        <li><h6 class="dropdown-header">Filter by Status</h6></li>
+                        <li><a class="dropdown-item active" href="javascript:void(0)" onclick="filterTableByStatus('all')">All Transactions</a></li>
+                        <li><a class="dropdown-item" href="javascript:void(0)" onclick="filterTableByStatus('unpaid')">Unpaid Balances Only</a></li>
+                        <li><a class="dropdown-item" href="javascript:void(0)" onclick="filterTableByStatus('partial')">Partial Payment</a></li>
+                        <li><a class="dropdown-item" href="javascript:void(0)" onclick="filterTableByStatus('paid')">Fully Settled</a></li>
+                    </ul>
+                </div>
+
+                <a href="{{ url_for('sales.create') }}" class="btn btn-dark rounded-pill px-3 py-2 small d-inline-flex align-items-center gap-1 shadow-sm">
+                    <i class="bi bi-plus-lg"></i> <span class="d-none d-sm-inline">New Sale</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Table View -->
+        <div class="table-responsive">
+            <table class="sd-table align-middle responsive-card-table" id="transactionsTable">
+                <thead>
+                    <tr>
+                        <th style="width: 40px;">
+                            <input type="checkbox" class="sd-checkbox" id="selectAllCheckbox" aria-label="Select all transactions">
+                        </th>
+                        <th>Invoice</th>
+                        <th>Item & Qty</th>
+                        <th>Customer</th>
+                        <th>Date</th>
+                        <th>Total</th>
+                        <th>Channel</th>
+                        <th>Method</th>
+                        <th class="text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="transactionTableBody">
+                    {% for item in metrics.recent_sales_enhanced %}
+                    <tr class="tx-row" data-status="{{ item.sale.payment_status }}" data-text="{{ item.order_id }} {{ item.item }} {{ item.customer_name }} {{ item.employee_name }} {{ item.channel_name }} {{ item.method_name }}">
+                        <td data-label="Select">
+                            <input type="checkbox" class="sd-checkbox row-select-cb" aria-label="Select row">
+                        </td>
+                        <td data-label="Invoice" class="order-id-cell">#{{ item.order_id }}</td>
+                        <td data-label="Item & Qty" class="item-cell">
+                            <div class="fw-semibold text-dark">{{ item.item }}</div>
+                            <span class="badge bg-light text-muted border small" style="font-size: 0.72rem;">Qty: {{ item.quantity }}</span>
+                        </td>
+                        <td data-label="Customer">
+                            <div class="small fw-semibold text-dark">{{ item.customer_name }}</div>
+                            <div class="text-muted" style="font-size: 0.7rem;">Staff: {{ item.employee_name }}</div>
+                        </td>
+                        <td data-label="Date" class="date-cell">{{ item.date_str }}</td>
+                        <td data-label="Total" class="price-cell">{{ item.price|currency }}</td>
+                        <td data-label="Channel">
+                            <span class="platform-pill" style="background-color: {{ item.channel_bg }}; color: {{ item.channel_color }};">
+                                <i class="bi {{ item.channel_icon }}"></i>
+                                <span>{{ item.channel_name }}</span>
+                            </span>
+                        </td>
+                        <td data-label="Method">
+                            <span class="platform-pill" style="background-color: {{ item.method_bg }}; color: {{ item.method_color }};">
+                                <i class="bi {{ item.method_icon }}"></i>
+                                <span>{{ item.method_name }}</span>
+                            </span>
+                        </td>
+                        <td data-label="Action" class="text-end">
+                            {% if item.sale.balance > 0 %}
+                            <button type="button" 
+                                    class="btn btn-sm btn-outline-success rounded-pill px-3"
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#payModal"
+                                    data-sale-id="{{ item.sale.id }}"
+                                    data-sale-item="{{ item.sale.item }}"
+                                    data-sale-balance="{{ item.sale.balance }}">
+                                <i class="bi bi-cash me-1"></i> Pay
+                            </button>
+                            {% else %}
+                            <span class="badge bg-success-subtle text-success rounded-pill px-3 py-1 font-monospace">
+                                <i class="bi bi-check2"></i> Settled
+                            </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="9" class="text-center py-4 text-muted">
+                            No transactions recorded yet. Click "New Sale" to begin!
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
-</div>
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
+// Data injected safely from backend
+const chartPeriodsData = {{ metrics.chart_periods|tojson }};
+const topProductsData = {{ metrics.top_products|tojson }};
+let currentMetric = "comparison";
+let currentPeriod = "7d";
+let chartInstance = null;
+
+// Initialize Chart & UI on DOM ready
 document.addEventListener("DOMContentLoaded", function () {
-    const ctx = document.getElementById("salesTrendChart");
-    if (ctx) {
-        new Chart(ctx, {
-            type: "line",
-            data: {
-                labels: {{ metrics.chart_labels|tojson }},
-                datasets: [{
-                    label: "Revenue (ETB)",
-                    data: {{ metrics.chart_values|tojson }},
-                    borderColor: "#0284c7",
-                    backgroundColor: "rgba(2, 132, 199, 0.08)",
-                    borderWidth: 2,
+    initSalesReportChart();
+    initTimeRangeButtons();
+    initTransactionSearch();
+    initSelectAllCheckbox();
+    initProductShowcase();
+});
+
+// Render the Dual-Line Curved Sales Report Chart matching Inspiration Image
+function initSalesReportChart() {
+    const ctx = document.getElementById("salesReportChart");
+    if (!ctx) return;
+
+    const dataObj = chartPeriodsData[currentPeriod] || chartPeriodsData["7d"];
+
+    // Custom gradient for blue line fill
+    const chartContext = ctx.getContext("2d");
+    const blueGradient = chartContext.createLinearGradient(0, 0, 0, 220);
+    blueGradient.addColorStop(0, "rgba(2, 132, 199, 0.14)");
+    blueGradient.addColorStop(1, "rgba(2, 132, 199, 0.0)");
+
+    chartInstance = new Chart(ctx, {
+        type: "line",
+        data: {
+            labels: dataObj.labels,
+            datasets: [
+                {
+                    label: "Sales Revenue",
+                    data: dataObj.sales,
+                    borderColor: "#0284c7", // Blue line
+                    backgroundColor: blueGradient,
                     fill: true,
-                    tension: 0.35,
-                    pointRadius: 4,
-                    pointBackgroundColor: "#0284c7"
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }
+                    tension: 0.42, // Organic bezier curve
+                    borderWidth: 2.5,
+                    pointRadius: 3,
+                    pointHoverRadius: 6,
+                    pointBackgroundColor: "#0284c7",
+                    pointBorderColor: "#ffffff",
+                    pointBorderWidth: 2
                 },
-                scales: {
-                    x: {
-                        grid: { display: false },
-                        ticks: { font: { size: 11 } }
-                    },
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            font: { size: 11 },
-                            callback: function(val) { return val.toLocaleString() + ' ETB'; }
+                {
+                    label: "Collections (Cash/Digital)",
+                    data: dataObj.payments,
+                    borderColor: "#f97316", // Orange curve
+                    backgroundColor: "transparent",
+                    fill: false,
+                    tension: 0.42,
+                    borderWidth: 2,
+                    pointRadius: 2,
+                    pointHoverRadius: 5,
+                    pointBackgroundColor: "#f97316",
+                    pointBorderColor: "#ffffff",
+                    pointBorderWidth: 2
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                intersect: false,
+                mode: "index"
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: "#0f172a", // Dark navy tooltip matching inspiration image
+                    titleColor: "#94a3b8",
+                    bodyColor: "#f8fafc",
+                    titleFont: { size: 12, family: "'Inter', sans-serif", weight: "600" },
+                    bodyFont: { size: 12, family: "'Inter', sans-serif" },
+                    padding: 12,
+                    cornerRadius: 10,
+                    displayColors: true,
+                    boxWidth: 8,
+                    boxHeight: 8,
+                    boxPadding: 4,
+                    callbacks: {
+                        title: function (items) {
+                            return items[0].label + " 2026";
+                        },
+                        label: function (context) {
+                            const val = context.parsed.y || 0;
+                            const formatted = val.toLocaleString() + " ETB";
+                            if (context.datasetIndex === 0) {
+                                return " Sales: " + formatted;
+                            } else {
+                                return " Collections: " + formatted;
+                            }
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { display: false, drawBorder: false },
+                    ticks: {
+                        color: "#94a3b8",
+                        font: { size: 11, family: "'Inter', sans-serif", weight: "500" }
+                    }
+                },
+                y: {
+                    grid: { color: "#f1f5f9", drawBorder: false },
+                    border: { dash: [4, 4] },
+                    ticks: {
+                        color: "#94a3b8",
+                        font: { size: 11, family: "'Inter', sans-serif" },
+                        callback: function (val) {
+                            if (val >= 1000) {
+                                return (val / 1000).toFixed(0) + "k";
+                            }
+                            return val;
                         }
                     }
                 }
             }
+        }
+    });
+}
+
+// Interactive Time Range Buttons (1d, 7d, 30d, 1y, Max)
+function initTimeRangeButtons() {
+    const buttons = document.querySelectorAll(".time-range-btn");
+    buttons.forEach(btn => {
+        btn.addEventListener("click", function () {
+            buttons.forEach(b => b.classList.remove("active"));
+            this.classList.add("active");
+            currentPeriod = this.getAttribute("data-period");
+            updateChartPeriod();
+        });
+    });
+}
+
+function updateChartPeriod() {
+    if (!chartInstance || !chartPeriodsData[currentPeriod]) return;
+    const dataObj = chartPeriodsData[currentPeriod];
+
+    chartInstance.data.labels = dataObj.labels;
+    chartInstance.data.datasets[0].data = dataObj.sales;
+    chartInstance.data.datasets[1].data = dataObj.payments;
+    chartInstance.update();
+
+    // Update Big Amount Hero
+    const heroElem = document.getElementById("heroAmountDisplay");
+    if (heroElem && dataObj.total !== undefined) {
+        heroElem.textContent = dataObj.total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " ETB";
+    }
+}
+
+// Switch between Total Sales, Collections, and Comparison
+function switchChartMetric(metricType, label) {
+    currentMetric = metricType;
+    document.getElementById("activeMetricLabel").textContent = label;
+    if (!chartInstance) return;
+
+    if (metricType === "sales") {
+        chartInstance.data.datasets[0].hidden = false;
+        chartInstance.data.datasets[1].hidden = true;
+    } else if (metricType === "collections") {
+        chartInstance.data.datasets[0].hidden = true;
+        chartInstance.data.datasets[1].hidden = false;
+    } else {
+        chartInstance.data.datasets[0].hidden = false;
+        chartInstance.data.datasets[1].hidden = false;
+    }
+    chartInstance.update();
+}
+
+// Real-Time Transaction Table Search
+function initTransactionSearch() {
+    const searchInput = document.getElementById("transactionSearchInput");
+    if (!searchInput) return;
+
+    searchInput.addEventListener("input", function () {
+        const query = this.value.trim().toLowerCase();
+        const rows = document.querySelectorAll(".tx-row");
+        rows.forEach(row => {
+            const rowText = (row.getAttribute("data-text") || "").toLowerCase();
+            if (!query || rowText.includes(query)) {
+                row.style.display = "";
+            } else {
+                row.style.display = "none";
+            }
+        });
+    });
+}
+
+// Filter Table by Status
+function filterTableByStatus(status) {
+    const rows = document.querySelectorAll(".tx-row");
+    rows.forEach(row => {
+        const rowStatus = row.getAttribute("data-status");
+        if (status === "all" || rowStatus === status) {
+            row.style.display = "";
+        } else {
+            row.style.display = "none";
+        }
+    });
+}
+
+// Select All Checkbox Handler
+function initSelectAllCheckbox() {
+    const selectAll = document.getElementById("selectAllCheckbox");
+    if (!selectAll) return;
+
+    selectAll.addEventListener("change", function () {
+        const rowCbs = document.querySelectorAll(".row-select-cb");
+        rowCbs.forEach(cb => {
+            cb.checked = selectAll.checked;
+        });
+    });
+}
+
+// Product Showcase Carousel based on actual database catalog
+const fallbackCatalog = [
+    {
+        title: "Dell Latitude 5420 Laptop",
+        img: "{{ url_for('static', filename='img/laptop.jpg') }}",
+        units: "14 units sold",
+        rev: "630,000.00 ETB"
+    },
+    {
+        title: "Cisco 24-Port Gigabit Switch",
+        img: "{{ url_for('static', filename='img/laptop.jpg') }}",
+        units: "8 units sold",
+        rev: "390,000.00 ETB"
+    },
+    {
+        title: "HP LaserJet Pro M404dn",
+        img: "{{ url_for('static', filename='img/laptop.jpg') }}",
+        units: "3 units sold",
+        rev: "224,000.00 ETB"
+    }
+];
+
+let productsCatalog = fallbackCatalog;
+
+if (topProductsData && topProductsData.length > 0) {
+    productsCatalog = topProductsData.map((p, idx) => ({
+        title: p.name,
+        img: "{{ url_for('static', filename='img/laptop.jpg') }}",
+        units: p.units + " units sold",
+        rev: p.revenue.toLocaleString("en-US", { minimumFractionDigits: 2 }) + " ETB"
+    }));
+}
+
+let productIndex = 0;
+
+function initProductShowcase() {
+    const prevBtn = document.getElementById("carouselPrevBtn");
+    const nextBtn = document.getElementById("carouselNextBtn");
+
+    if (prevBtn) {
+        prevBtn.addEventListener("click", function () {
+            productIndex = (productIndex - 1 + productsCatalog.length) % productsCatalog.length;
+            renderShowcaseProduct();
         });
     }
-});
+
+    if (nextBtn) {
+        nextBtn.addEventListener("click", function () {
+            productIndex = (productIndex + 1) % productsCatalog.length;
+            renderShowcaseProduct();
+        });
+    }
+
+    // Touch Swipe Support for Mobile Phones
+    const carouselWrapper = document.getElementById("productCarouselWrapper");
+    if (carouselWrapper) {
+        let touchStartX = 0;
+        let touchEndX = 0;
+        carouselWrapper.addEventListener("touchstart", function (e) {
+            touchStartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+        carouselWrapper.addEventListener("touchend", function (e) {
+            touchEndX = e.changedTouches[0].screenX;
+            if (touchStartX - touchEndX > 45) {
+                // Swiped Left -> Next product
+                productIndex = (productIndex + 1) % productsCatalog.length;
+                renderShowcaseProduct();
+            } else if (touchEndX - touchStartX > 45) {
+                // Swiped Right -> Prev product
+                productIndex = (productIndex - 1 + productsCatalog.length) % productsCatalog.length;
+                renderShowcaseProduct();
+            }
+        }, { passive: true });
+    }
+
+    renderShowcaseProduct();
+}
+
+function renderShowcaseProduct() {
+    if (!productsCatalog || productsCatalog.length === 0) return;
+    const current = productsCatalog[productIndex];
+    const prev = productsCatalog[(productIndex - 1 + productsCatalog.length) % productsCatalog.length];
+    const next = productsCatalog[(productIndex + 1) % productsCatalog.length];
+
+    document.getElementById("imgCenter").src = current.img;
+    document.getElementById("imgSideLeft").src = prev.img;
+    document.getElementById("imgSideRight").src = next.img;
+
+    document.getElementById("showcaseProductTitle").textContent = current.title;
+    document.getElementById("showcaseProductUnits").innerHTML = `<i class="bi bi-box-seam text-primary me-1"></i> ${current.units}`;
+    document.getElementById("showcaseProductRev").textContent = current.rev;
+}
 </script>
 {% endblock %}
