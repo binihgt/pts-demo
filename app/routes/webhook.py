@@ -2,8 +2,17 @@ import logging
 from flask import Blueprint, request, jsonify, current_app
 from app.extensions import csrf
 
+import re
+
 webhook_bp = Blueprint("webhook", __name__)
 logger = logging.getLogger("pts_bot.webhook_route")
+
+
+def sanitize_telegram_secret(secret: str) -> str:
+    """Ensure secret matches Telegram's allowed character set [A-Za-z0-9_-]."""
+    if not secret:
+        return ""
+    return re.sub(r"[^A-Za-z0-9_-]", "_", secret)
 
 
 @webhook_bp.route("/webhook/telegram", methods=["POST"])
@@ -17,7 +26,8 @@ def telegram_webhook():
     expected_secret = current_app.config.get("TELEGRAM_WEBHOOK_SECRET", "").strip()
     if expected_secret:
         header_secret = request.headers.get("X-Telegram-Bot-Api-Secret-Token", "").strip()
-        if header_secret != expected_secret:
+        clean_expected = sanitize_telegram_secret(expected_secret)
+        if header_secret != expected_secret and header_secret != clean_expected:
             logger.warning("Rejected Telegram webhook request: secret token mismatch.")
             return jsonify({"status": "error", "message": "Invalid webhook secret"}), 403
 

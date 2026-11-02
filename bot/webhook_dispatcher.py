@@ -90,11 +90,13 @@ def register_webhook_async(token: str, public_url: str, webhook_path: str = "/we
             target_url = f"{public_url.rstrip('/')}{webhook_path}"
             logger.info(f"Auto-registering Telegram webhook at: {target_url}")
             try:
+                import re
+                clean_secret = re.sub(r"[^A-Za-z0-9_-]", "_", secret) if secret else None
                 bot = Bot(token=token)
                 async with bot:
                     await bot.set_webhook(
                         url=target_url,
-                        secret_token=secret or None,
+                        secret_token=clean_secret,
                         drop_pending_updates=False
                     )
                     logger.info(f"Telegram webhook successfully registered to {target_url}")
