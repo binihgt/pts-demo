@@ -47,6 +47,10 @@ def create_app(config_name: str | None = None) -> Flask:
     csrf.init_app(app)
     limiter.init_app(app)
 
+    # Register active app with bot context
+    from bot.context import set_bot_app
+    set_bot_app(app)
+
     # Configure user loader for Flask-Login
     from app.models.user import User
 
@@ -173,6 +177,12 @@ def create_app(config_name: str | None = None) -> Flask:
                     seed_database(app=app, recreate=False)
             except Exception as exc:
                 app.logger.warning(f"Could not auto-seed database on startup: {exc}")
+            finally:
+                db.session.remove()
+                try:
+                    db.engine.dispose()
+                except Exception:
+                    pass
 
     # Auto-register Telegram webhook on startup if public URL and bot token are configured
     public_url = app.config.get("PUBLIC_URL", "").strip()

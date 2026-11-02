@@ -44,10 +44,14 @@ def telegram_webhook():
 
     # 4. Dispatch update to Telegram Application runner
     try:
+        from bot.context import set_bot_app
+        set_bot_app(current_app._get_current_object())
         from bot.webhook_dispatcher import dispatch_telegram_update
         dispatch_telegram_update(token, payload)
     except Exception as exc:
         logger.error(f"Error processing Telegram webhook update: {exc}", exc_info=True)
+        import sys, traceback
+        traceback.print_exc(file=sys.stderr)
         return jsonify({"status": "error", "message": "Failed to process update"}), 500
 
     return jsonify({"status": "ok"}), 200

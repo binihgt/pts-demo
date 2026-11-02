@@ -25,6 +25,10 @@ class Config:
         SQLALCHEMY_DATABASE_URI = f"sqlite:///{BASE_DIR / 'pts_demo.db'}"
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        "pool_pre_ping": True,
+        "pool_recycle": 280,
+    }
     
     # Demo Mode Setting
     DEMO_MODE = os.getenv("DEMO_MODE", "False").lower() in ("true", "1", "yes")
