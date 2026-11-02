@@ -41,7 +41,8 @@ class BotWebhookRunner:
     async def _init_app(self):
         try:
             await self.bot_app.initialize()
-            logger.info("Bot application successfully initialized via Telegram API.")
+            await self.bot_app.start()
+            logger.info("Bot application successfully initialized and started via Telegram API.")
         except Exception as exc:
             logger.warning(f"Could not initialize bot via Telegram API ({exc}). Falling back to local offline mode.")
             # Set internal flags so process_update does not raise RuntimeError in offline/test scenarios
