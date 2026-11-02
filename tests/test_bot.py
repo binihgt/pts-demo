@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock
 from telegram import Update, User as TgUser, Message, Chat
 from bot.main import build_bot_application
-from bot.handlers.start import start_command
+from bot.handlers.start import start_command, logout_command
 from bot.handlers.sales_query import today_command, mysales_command
 from app.models.user import User
 from app.models.sale import Sale
@@ -210,4 +210,87 @@ async def test_bot_pay_start_without_args_prompts_unpaid_invoices(app):
         assert "Which invoice number would you like to pay?" in prompt
         assert f"Invoice #{sale.id}" in prompt
         assert "25,000.00 ETB" in prompt
+
+
+@pytest.mark.asyncio
+async def test_bot_logout_flow(app):
+    """Test /logout command unlinks user and clears Telegram ID."""
+    with app.app_context():
+        emp = User.query.filter_by(username="emp_test").first()
+        emp.telegram_id = 7788990011
+        db.session.commit()
+
+        tg_user = TgUser(id=7788990011, is_bot=False, first_name="EmpUser")
+        message = MagicMock(spec=Message)
+        message.reply_text = AsyncMock()
+
+        update = MagicMock(spec=Update)
+        update.effective_user = tg_user
+        update.message = message
+
+        context = MagicMock()
+        context.user_data = {"some_key": "val"}
+
+        await logout_command(update, context)
+
+        message.reply_text.assert_called_once()
+        reply = message.reply_text.call_args[0][0]
+        assert "Logged Out Successfully" in reply
+
+        updated_emp = User.query.filter_by(username="emp_test").first()
+        assert updated_emp.telegram_id is None
+        assert context.user_data == {}
+
+
+@pytest.mark.asyncio
+async def test_bot_account_switching_flow(app):
+    """Test full account switching workflow: refusal -> /logout -> /start <CODE>."""
+    with app.app_context():
+        emp1 = User.query.filter_by(username="emp_test").first()
+        emp1.telegram_id = 9911223344
+
+        ceo = User.query.filter_by(username="ceo_test").first()
+        code = ceo.generate_telegram_link_code()
+        db.session.commit()
+
+        tg_user = TgUser(id=9911223344, is_bot=False, first_name="Switcher")
+        message = MagicMock(spec=Message)
+        message.reply_text = AsyncMock()
+
+        update = MagicMock(spec=Update)
+        update.effective_user = tg_user
+        update.message = message
+
+        context = MagicMock()
+        context.args = [code]
+        context.user_data = {}
+
+        # 1. Attempting /start <NEW_CODE> while already linked is refused and suggests /logout
+        await start_command(update, context)
+        message.reply_text.assert_called_once()
+        refusal_reply = message.reply_text.call_args[0][0]
+        assert "Account Already Linked" in refusal_reply
+        assert "/logout" in refusal_reply
+
+        # 2. Call /logout to unlink
+        message.reply_text.reset_mock()
+        await logout_command(update, context)
+        message.reply_text.assert_called_once()
+        logout_reply = message.reply_text.call_args[0][0]
+        assert "Logged Out Successfully" in logout_reply
+
+        # 3. Now enter /start <NEW_CODE> to link to CEO account
+        message.reply_text.reset_mock()
+        await start_command(update, context)
+        message.reply_text.assert_called_once()
+        linked_reply = message.reply_text.call_args[0][0]
+        assert "Account Linked Successfully" in linked_reply
+
+        # 4. Verify emp1 unlinked, ceo linked
+        updated_emp1 = User.query.filter_by(username="emp_test").first()
+        updated_ceo = User.query.filter_by(username="ceo_test").first()
+        assert updated_emp1.telegram_id is None
+        assert updated_ceo.telegram_id == 9911223344
+
+
 

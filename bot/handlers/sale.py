@@ -266,6 +266,7 @@ def get_sale_conversation_handler() -> ConversationHandler:
             CommandHandler("mysales", sale_cancel),
             CommandHandler("today", sale_cancel),
             CommandHandler("report", sale_cancel),
+            CommandHandler("logout", sale_cancel),
         ],
         allow_reentry=True,
     )

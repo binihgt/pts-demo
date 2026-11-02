@@ -24,7 +24,7 @@ from telegram.ext import (
     CommandHandler,
     ContextTypes,
 )
-from bot.handlers.start import start_command, help_command
+from bot.handlers.start import start_command, help_command, logout_command
 from bot.handlers.sale import get_sale_conversation_handler
 from bot.handlers.pay import get_pay_conversation_handler
 from bot.handlers.sales_query import mysales_command, today_command
@@ -84,6 +84,7 @@ def build_bot_application(token: str):
     # Register Handlers
     application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CommandHandler("help", help_command))
+    application.add_handler(CommandHandler("logout", logout_command))
     application.add_handler(get_sale_conversation_handler())
     application.add_handler(get_pay_conversation_handler())
     application.add_handler(CommandHandler("mysales", mysales_command))

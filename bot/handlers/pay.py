@@ -264,6 +264,7 @@ def get_pay_conversation_handler() -> ConversationHandler:
             CommandHandler("mysales", pay_cancel),
             CommandHandler("today", pay_cancel),
             CommandHandler("report", pay_cancel),
+            CommandHandler("logout", pay_cancel),
         ],
         allow_reentry=True,
     )
