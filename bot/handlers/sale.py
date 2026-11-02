@@ -216,10 +216,18 @@ async def sale_confirm_callback(update: Update, context: ContextTypes.DEFAULT_TY
 
 
 async def sale_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Cancel guided sale conversation."""
+    """Cancel guided sale conversation or gracefully switch commands."""
     context.user_data.clear()
-    if update.message:
-        await update.message.reply_text("Sale operation cancelled.")
+    cmd = update.message.text.split()[0] if update.message and update.message.text else "/cancel"
+    if cmd in ("/cancel", "/stop"):
+        if update.message:
+            await update.message.reply_text("Sale operation cancelled.")
+    else:
+        if update.message:
+            await update.message.reply_text(
+                f"⚠️ *Sale cancelled.* Switched to `{cmd}`. Please re-send `{cmd}` to continue.",
+                parse_mode="Markdown"
+            )
     return ConversationHandler.END
 
 
@@ -237,6 +245,14 @@ def get_sale_conversation_handler() -> ConversationHandler:
             ],
             CONFIRM: [CallbackQueryHandler(sale_confirm_callback, pattern="^(confirm_sale|cancel_sale)$")],
         },
-        fallbacks=[CommandHandler("cancel", sale_cancel)],
+        fallbacks=[
+            CommandHandler("cancel", sale_cancel),
+            CommandHandler("stop", sale_cancel),
+            CommandHandler("start", sale_cancel),
+            CommandHandler("pay", sale_cancel),
+            CommandHandler("mysales", sale_cancel),
+            CommandHandler("today", sale_cancel),
+            CommandHandler("report", sale_cancel),
+        ],
         allow_reentry=True,
     )

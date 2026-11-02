@@ -227,10 +227,18 @@ async def pay_method_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 
 async def pay_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Cancel payment flow."""
+    """Cancel payment flow or gracefully switch commands."""
     context.user_data.clear()
-    if update.message:
-        await update.message.reply_text("Payment recording cancelled.")
+    cmd = update.message.text.split()[0] if update.message and update.message.text else "/cancel"
+    if cmd in ("/cancel", "/stop"):
+        if update.message:
+            await update.message.reply_text("Payment recording cancelled.")
+    else:
+        if update.message:
+            await update.message.reply_text(
+                f"⚠️ *Payment cancelled.* Switched to `{cmd}`. Please re-send `{cmd}` to continue.",
+                parse_mode="Markdown"
+            )
     return ConversationHandler.END
 
 
@@ -243,6 +251,14 @@ def get_pay_conversation_handler() -> ConversationHandler:
             AMOUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, pay_amount)],
             METHOD: [CallbackQueryHandler(pay_method_callback, pattern="^(pay_method_|pay_cancel)")],
         },
-        fallbacks=[CommandHandler("cancel", pay_cancel)],
+        fallbacks=[
+            CommandHandler("cancel", pay_cancel),
+            CommandHandler("stop", pay_cancel),
+            CommandHandler("start", pay_cancel),
+            CommandHandler("sale", pay_cancel),
+            CommandHandler("mysales", pay_cancel),
+            CommandHandler("today", pay_cancel),
+            CommandHandler("report", pay_cancel),
+        ],
         allow_reentry=True,
     )
